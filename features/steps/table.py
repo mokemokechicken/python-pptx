@@ -10,7 +10,7 @@ from pptx import Presentation
 from pptx.enum.text import MSO_ANCHOR  # noqa
 from pptx.util import Inches
 
-from helpers import test_pptx
+from helpers import test_pptx, saved_pptx_path
 
 
 # given ===================================================
@@ -157,6 +157,25 @@ def when_I_call_cell_split_other_cell(context):
 def when_I_call_origin_cell_merge_other_cell(context):
     context.origin_cell.merge(context.other_cell)
 
+
+@when("I add a row to a table")
+def when_add_row_to_table(context):
+    context.table_.rows.add_row()
+
+
+@when("I remove a row from a table")
+def when_add_row_to_table(context):
+    context.table_.rows.remove(context.table_.rows[1])
+
+
+@when("I add a column to a table")
+def when_add_row_to_table(context):
+    context.table_.columns.add_column()
+
+
+@when("I remove a column from a table")
+def when_add_row_to_table(context):
+    context.table_.columns.remove(context.table_.columns[1])
 
 # then ====================================================
 
@@ -309,3 +328,40 @@ def then_table_vert_banding_is_value(context, bool_lit):
     actual = context.table_.vert_banding
     expected = eval(bool_lit)
     assert actual is expected, "table.vert_banding is %s" % actual
+
+
+@then('the text appears in the first cell of the table')
+def then_text_appears_in_first_cell_of_table(context):
+    prs = Presentation(saved_pptx_path)
+    table = prs.slides[0].shapes[3].table
+    text = table.cell(0, 0).text_frame.paragraphs[0].runs[0].text
+    assert text == 'test text'
+
+
+@then('the table now has 3 rows')
+def table_has_three_rows(context):
+    prs = Presentation(saved_pptx_path)
+    table = prs.slides[0].shapes[3].table
+    assert len(table.rows) == 3
+
+
+@then('the table now has 1 row')
+def table_has_three_rows(context):
+    prs = Presentation(saved_pptx_path)
+    table = prs.slides[0].shapes[3].table
+    assert len(table.rows) == 1
+
+
+@then('the table now has 3 columns')
+def table_has_three_rows(context):
+    prs = Presentation(saved_pptx_path)
+    table = prs.slides[0].shapes[3].table
+    assert len(table.columns) == 3
+
+
+@then('the table now has 1 column')
+def table_has_three_rows(context):
+    prs = Presentation(saved_pptx_path)
+    table = prs.slides[0].shapes[3].table
+    assert len(table.columns) == 1
+
