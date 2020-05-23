@@ -14,151 +14,6 @@ from pptx.text.text import TextFrame
 from pptx.util import lazyproperty
 
 
-class Table(object):
-    """A DrawingML table object.
-
-    Not intended to be constructed directly, use
-    :meth:`.Slide.shapes.add_table` to add a table to a slide.
-    """
-
-    def __init__(self, tbl, graphic_frame):
-        super(Table, self).__init__()
-        self._tbl = tbl
-        self._graphic_frame = graphic_frame
-
-    def cell(self, row_idx, col_idx):
-        """Return cell at *row_idx*, *col_idx*.
-
-        Return value is an instance of |_Cell|. *row_idx* and *col_idx* are
-        zero-based, e.g. cell(0, 0) is the top, left cell in the table.
-        """
-        return _Cell(self._tbl.tc(row_idx, col_idx), self)
-
-    @lazyproperty
-    def columns(self):
-        """
-        Read-only reference to collection of |_Column| objects representing
-        the table's columns. |_Column| objects are accessed using list
-        notation, e.g. ``col = tbl.columns[0]``.
-        """
-        return _ColumnCollection(self._tbl, self)
-
-    @property
-    def first_col(self):
-        """
-        Read/write boolean property which, when true, indicates the first
-        column should be formatted differently, as for a side-heading column
-        at the far left of the table.
-        """
-        return self._tbl.firstCol
-
-    @first_col.setter
-    def first_col(self, value):
-        self._tbl.firstCol = value
-
-    @property
-    def first_row(self):
-        """
-        Read/write boolean property which, when true, indicates the first
-        row should be formatted differently, e.g. for column headings.
-        """
-        return self._tbl.firstRow
-
-    @first_row.setter
-    def first_row(self, value):
-        self._tbl.firstRow = value
-
-    @property
-    def horz_banding(self):
-        """
-        Read/write boolean property which, when true, indicates the rows of
-        the table should appear with alternating shading.
-        """
-        return self._tbl.bandRow
-
-    @horz_banding.setter
-    def horz_banding(self, value):
-        self._tbl.bandRow = value
-
-    def iter_cells(self):
-        """Generate _Cell object for each cell in this table.
-
-        Each grid cell is generated in left-to-right, top-to-bottom order.
-        """
-        return (_Cell(tc, self) for tc in self._tbl.iter_tcs())
-
-    @property
-    def last_col(self):
-        """
-        Read/write boolean property which, when true, indicates the last
-        column should be formatted differently, as for a row totals column at
-        the far right of the table.
-        """
-        return self._tbl.lastCol
-
-    @last_col.setter
-    def last_col(self, value):
-        self._tbl.lastCol = value
-
-    @property
-    def last_row(self):
-        """
-        Read/write boolean property which, when true, indicates the last
-        row should be formatted differently, as for a totals row at the
-        bottom of the table.
-        """
-        return self._tbl.lastRow
-
-    @last_row.setter
-    def last_row(self, value):
-        self._tbl.lastRow = value
-
-    def notify_height_changed(self):
-        """
-        Called by a row when its height changes, triggering the graphic frame
-        to recalculate its total height (as the sum of the row heights).
-        """
-        new_table_height = sum([row.height for row in self.rows])
-        self._graphic_frame.height = new_table_height
-
-    def notify_width_changed(self):
-        """
-        Called by a column when its width changes, triggering the graphic
-        frame to recalculate its total width (as the sum of the column
-        widths).
-        """
-        new_table_width = sum([col.width for col in self.columns])
-        self._graphic_frame.width = new_table_width
-
-    @property
-    def part(self):
-        """
-        The package part containing this table.
-        """
-        return self._graphic_frame.part
-
-    @lazyproperty
-    def rows(self):
-        """
-        Read-only reference to collection of |_Row| objects representing the
-        table's rows. |_Row| objects are accessed using list notation, e.g.
-        ``col = tbl.rows[0]``.
-        """
-        return _RowCollection(self._tbl, self)
-
-    @property
-    def vert_banding(self):
-        """
-        Read/write boolean property which, when true, indicates the columns
-        of the table should appear with alternating shading.
-        """
-        return self._tbl.bandCol
-
-    @vert_banding.setter
-    def vert_banding(self, value):
-        self._tbl.bandCol = value
-
-
 class _Cell(Subshape):
     """Table cell"""
 
@@ -189,10 +44,14 @@ class _Cell(Subshape):
         """
         tcPr = self._tc.get_or_add_tcPr()
         return FillFormat.from_fill_parent(tcPr)
+    fill: FillFormat
 
     @property
     def is_merge_origin(self):
-        """True if this cell is the top-left grid cell in a merged cell."""
+        """True if this cell is the top-left grid cell in a merged cell.
+
+        :rtype: bool
+        """
         return self._tc.is_merge_origin
 
     @property
@@ -204,6 +63,8 @@ class _Cell(Subshape):
 
         Note this value is |False| for a merge-origin cell. A merge-origin
         cell spans other grid cells, but is not itself a spanned cell.
+
+        :rtype: bool
         """
         return self._tc.is_spanned
 
@@ -213,6 +74,8 @@ class _Cell(Subshape):
         Read/write integer value of left margin of cell as a |Length| value
         object. If assigned |None|, the default value is used, 0.1 inches for
         left and right margins and 0.05 inches for top and bottom.
+
+        :rtype: pptx.util.Length
         """
         return self._tc.marL
 
@@ -225,6 +88,8 @@ class _Cell(Subshape):
     def margin_right(self):
         """
         Right margin of cell.
+
+        :rtype: pptx.util.Length
         """
         return self._tc.marR
 
@@ -237,6 +102,8 @@ class _Cell(Subshape):
     def margin_top(self):
         """
         Top margin of cell.
+
+        :rtype: pptx.util.Length
         """
         return self._tc.marT
 
@@ -249,6 +116,8 @@ class _Cell(Subshape):
     def margin_bottom(self):
         """
         Bottom margin of cell.
+
+        :rtype: pptx.util.Length
         """
         return self._tc.marB
 
@@ -297,6 +166,8 @@ class _Cell(Subshape):
         contains complete span information. This property is only intended
         for use on cells known to be a merge origin by testing
         `.is_merge_origin`.
+
+        :rtype: int
         """
         return self._tc.rowSpan
 
@@ -309,6 +180,8 @@ class _Cell(Subshape):
         contains complete span information. This property is only intended
         for use on cells known to be a merge origin by testing
         `.is_merge_origin`.
+
+        :rtype: int
         """
         return self._tc.gridSpan
 
@@ -351,6 +224,8 @@ class _Cell(Subshape):
         Either bytes (Python 2 str) or unicode (Python 3 str) can be assigned. Bytes can
         be 7-bit ASCII or UTF-8 encoded 8-bit bytes. Bytes values are converted to
         unicode assuming UTF-8 encoding (which correctly decodes ASCII).
+
+        :rtype: str
         """
         return self.text_frame.text
 
@@ -362,6 +237,8 @@ class _Cell(Subshape):
     def text_frame(self):
         """
         |TextFrame| instance containing the text that appears in the cell.
+
+        :rtype: TextFrame
         """
         txBody = self._tc.get_or_add_txBody()
         return TextFrame(txBody, self)
@@ -407,6 +284,8 @@ class _Column(Subshape):
     def width(self):
         """
         Width of column in EMU.
+
+        :rtype: pptx.util.Emu
         """
         return self._gridCol.w
 
@@ -435,6 +314,8 @@ class _Row(Subshape):
     def height(self):
         """
         Height of row in EMU.
+
+        :rtype: pptx.util.Emu
         """
         return self._tr.h
 
@@ -575,3 +456,165 @@ class _RowCollection(Subshape):
         Removes specified *row* (e.g. ``table.rows.remove(table.rows[0])``).
         """
         self._tbl.remove(row._tr)
+
+
+class Table(object):
+    """A DrawingML table object.
+
+    Not intended to be constructed directly, use
+    :meth:`.Slide.shapes.add_table` to add a table to a slide.
+    """
+
+    def __init__(self, tbl, graphic_frame):
+        super(Table, self).__init__()
+        self._tbl = tbl
+        self._graphic_frame = graphic_frame
+
+    def cell(self, row_idx, col_idx):
+        """Return cell at *row_idx*, *col_idx*.
+
+        Return value is an instance of |_Cell|. *row_idx* and *col_idx* are
+        zero-based, e.g. cell(0, 0) is the top, left cell in the table.
+        """
+        return _Cell(self._tbl.tc(row_idx, col_idx), self)
+
+    @lazyproperty
+    def columns(self):
+        """
+        Read-only reference to collection of |_Column| objects representing
+        the table's columns. |_Column| objects are accessed using list
+        notation, e.g. ``col = tbl.columns[0]``.
+        """
+        return _ColumnCollection(self._tbl, self)
+    columns: _ColumnCollection
+
+    @property
+    def first_col(self):
+        """
+        Read/write boolean property which, when true, indicates the first
+        column should be formatted differently, as for a side-heading column
+        at the far left of the table.
+
+        :rtype: _Column
+        """
+        return self._tbl.firstCol
+
+    @first_col.setter
+    def first_col(self, value):
+        self._tbl.firstCol = value
+
+    @property
+    def first_row(self):
+        """
+        Read/write boolean property which, when true, indicates the first
+        row should be formatted differently, e.g. for column headings.
+
+        :rtype: _Row
+        """
+        return self._tbl.firstRow
+
+    @first_row.setter
+    def first_row(self, value):
+        self._tbl.firstRow = value
+
+    @property
+    def horz_banding(self):
+        """
+        Read/write boolean property which, when true, indicates the rows of
+        the table should appear with alternating shading.
+
+        :rtype: bool
+        """
+        return self._tbl.bandRow
+
+    @horz_banding.setter
+    def horz_banding(self, value):
+        self._tbl.bandRow = value
+
+    def iter_cells(self):
+        """Generate _Cell object for each cell in this table.
+
+        Each grid cell is generated in left-to-right, top-to-bottom order.
+
+        :rtype: typing.Iterable[_Cell]
+        """
+        return (_Cell(tc, self) for tc in self._tbl.iter_tcs())
+
+    @property
+    def last_col(self):
+        """
+        Read/write boolean property which, when true, indicates the last
+        column should be formatted differently, as for a row totals column at
+        the far right of the table.
+
+        :rtype: _Column
+        """
+        return self._tbl.lastCol
+
+    @last_col.setter
+    def last_col(self, value):
+        self._tbl.lastCol = value
+
+    @property
+    def last_row(self):
+        """
+        Read/write boolean property which, when true, indicates the last
+        row should be formatted differently, as for a totals row at the
+        bottom of the table.
+
+        :rtype: _Row
+        """
+        return self._tbl.lastRow
+
+    @last_row.setter
+    def last_row(self, value):
+        self._tbl.lastRow = value
+
+    def notify_height_changed(self):
+        """
+        Called by a row when its height changes, triggering the graphic frame
+        to recalculate its total height (as the sum of the row heights).
+        """
+        new_table_height = sum([row.height for row in self.rows])
+        self._graphic_frame.height = new_table_height
+
+    def notify_width_changed(self):
+        """
+        Called by a column when its width changes, triggering the graphic
+        frame to recalculate its total width (as the sum of the column
+        widths).
+        """
+        new_table_width = sum([col.width for col in self.columns])
+        self._graphic_frame.width = new_table_width
+
+    @property
+    def part(self):
+        """
+        The package part containing this table.
+        """
+        return self._graphic_frame.part
+
+    @lazyproperty
+    def rows(self):
+        """
+        Read-only reference to collection of |_Row| objects representing the
+        table's rows. |_Row| objects are accessed using list notation, e.g.
+        ``col = tbl.rows[0]``.
+        """
+        return _RowCollection(self._tbl, self)
+    rows: _RowCollection
+
+    @property
+    def vert_banding(self):
+        """
+        Read/write boolean property which, when true, indicates the columns
+        of the table should appear with alternating shading.
+
+        :rtype: bool
+        """
+        return self._tbl.bandCol
+
+    @vert_banding.setter
+    def vert_banding(self, value):
+        self._tbl.bandCol = value
+

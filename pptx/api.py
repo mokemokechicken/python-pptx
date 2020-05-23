@@ -21,6 +21,8 @@ def Presentation(pptx=None):
     either a path to a ``.pptx`` file (a string) or a file-like object. If
     *pptx* is missing or ``None``, the built-in default presentation
     "template" is loaded.
+
+    :rtype: pptx.presentation.Presentation
     """
     if pptx is None:
         pptx = _default_pptx_path()

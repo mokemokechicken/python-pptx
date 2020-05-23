@@ -24,7 +24,10 @@ class Presentation(PartElementProxy):
         """
         Instance of |CoreProperties| holding the read/write Dublin Core
         document properties for this presentation.
+
+        :rtype: pptx.parts.coreprops.CorePropertiesPart
         """
+
         return self.part.core_properties
 
     @property
@@ -33,6 +36,8 @@ class Presentation(PartElementProxy):
         Instance of |NotesMaster| for this presentation. If the presentation
         does not have a notes master, one is created from a default template
         and returned. The same single instance is returned on each call.
+
+        :rtype: pptx.slide.NotesMaster
         """
         return self.part.notes_master
 
@@ -48,6 +53,8 @@ class Presentation(PartElementProxy):
         """
         Height of slides in this presentation, in English Metric Units (EMU).
         Returns |None| if no slide width is defined. Read/write.
+
+        :rtype: pptx.util.Emu
         """
         sldSz = self._element.sldSz
         if sldSz is None:
@@ -67,6 +74,8 @@ class Presentation(PartElementProxy):
         one slide master and each master will have its own set of layouts.
         This property is a convenience for the common case where the
         presentation has only a single slide master.
+
+        :rtype: pptx.slide.SlideLayouts
         """
         return self.slide_masters[0].slide_layouts
 
@@ -76,6 +85,8 @@ class Presentation(PartElementProxy):
         First |SlideMaster| object belonging to this presentation. Typically,
         presentations have only a single slide master. This property provides
         simpler access in that common case.
+
+        :rtype: pptx.slide.SlideMaster
         """
         return self.slide_masters[0]
 
@@ -83,14 +94,19 @@ class Presentation(PartElementProxy):
     def slide_masters(self):
         """
         Sequence of |SlideMaster| objects belonging to this presentation
+
+        :rtype: pptx.slide.SlideMasters
         """
         return SlideMasters(self._element.get_or_add_sldMasterIdLst(), self)
+    slide_masters: SlideMasters
 
     @property
     def slide_width(self):
         """
         Width of slides in this presentation, in English Metric Units (EMU).
         Returns |None| if no slide width is defined. Read/write.
+
+        :rtype: pptx.util.Emu
         """
         sldSz = self._element.sldSz
         if sldSz is None:
@@ -110,3 +126,4 @@ class Presentation(PartElementProxy):
         sldIdLst = self._element.get_or_add_sldIdLst()
         self.part.rename_slide_parts([sldId.rId for sldId in sldIdLst])
         return Slides(sldIdLst, self)
+    slides: Slides
