@@ -72,6 +72,8 @@ class _BaseShapes(ParentedElementProxy):
     def __getitem__(self, idx):
         """
         Return shape at *idx* in sequence, e.g. ``shapes[2]``.
+
+        :rtype: BaseShapeFactory
         """
         shape_elms = list(self._iter_member_elms())
         try:
@@ -506,6 +508,8 @@ class SlideShapes(_BaseGroupShapes):
         Likewise, *height* is evenly distributed between the rows. Note that
         the ``.table`` property on the returned |GraphicFrame| shape must be
         used to access the enclosed |Table| object.
+
+        :rtype: GraphicFrame
         """
         graphicFrame = self._add_graphicFrame_containing_table(
             rows, cols, left, top, width, height
@@ -527,6 +531,8 @@ class SlideShapes(_BaseGroupShapes):
         """
         Instance of |SlidePlaceholders| containing sequence of placeholder
         shapes in this slide.
+
+        :rtype: SlidePlaceholders
         """
         return self.parent.placeholders
 

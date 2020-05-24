@@ -6,6 +6,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from pptx.dml.fill import FillFormat
 from pptx.enum.shapes import PP_PLACEHOLDER
+from pptx.shapes.placeholder import NotesSlidePlaceholder, LayoutPlaceholder
 from pptx.shapes.shapetree import (
     LayoutPlaceholders,
     LayoutShapes,
@@ -18,6 +19,51 @@ from pptx.shapes.shapetree import (
 )
 from pptx.shared import ElementProxy, ParentedElementProxy, PartElementProxy
 from pptx.util import lazyproperty
+
+
+class _Background(ElementProxy):
+    """Provides access to slide background properties.
+
+    Note that the presence of this object does not by itself imply an
+    explicitly-defined background; a slide with an inherited background still
+    has a |_Background| object.
+    """
+
+    __slots__ = ("_cSld", "_fill")
+
+    def __init__(self, cSld):
+        super(_Background, self).__init__(cSld)
+        self._cSld = cSld
+
+    @lazyproperty
+    def fill(self):
+        """|FillFormat| instance for this background.
+
+        This |FillFormat| object is used to interrogate or specify the fill
+        of the slide background.
+
+        Note that accessing this property is potentially destructive. A slide
+        background can also be specified by a background style reference and
+        accessing this property will remove that reference, if present, and
+        replace it with NoFill. This is frequently the case for a slide
+        master background.
+
+        This is also the case when there is no explicitly defined background
+        (background is inherited); merely accessing this property will cause
+        the background to be set to NoFill and the inheritance link will be
+        interrupted. This is frequently the case for a slide background.
+
+        Of course, if you are accessing this property in order to set the
+        fill, then these changes are of no consequence, but the existing
+        background cannot be reliably interrogated using this property unless
+        you have already established it is an explicit fill.
+
+        If the background is already a fill, then accessing this property
+        makes no changes to the current background.
+        """
+        bgPr = self._cSld.get_or_add_bgPr()
+        return FillFormat.from_fill_parent(bgPr)
+    fill: FillFormat
 
 
 class _BaseSlide(PartElementProxy):
@@ -36,6 +82,7 @@ class _BaseSlide(PartElementProxy):
         slide object.
         """
         return _Background(self._element.cSld)
+    background: _Background
 
     @property
     def name(self):
@@ -43,6 +90,8 @@ class _BaseSlide(PartElementProxy):
         String representing the internal name of this slide. Returns an empty
         string (`''`) if no name is assigned. Assigning an empty string or
         |None| to this property causes any name to be removed.
+
+        :rtype: str
         """
         return self._element.cSld.name
 
@@ -67,6 +116,7 @@ class _BaseMaster(_BaseSlide):
         shapes in this master, sorted in *idx* order.
         """
         return MasterPlaceholders(self._element.spTree, self)
+    placeholders: MasterPlaceholders
 
     @lazyproperty
     def shapes(self):
@@ -75,6 +125,7 @@ class _BaseMaster(_BaseSlide):
         appearing on this slide.
         """
         return MasterShapes(self._element.spTree, self)
+    shapes: MasterShapes
 
 
 class NotesMaster(_BaseMaster):
@@ -129,6 +180,9 @@ class NotesSlide(_BaseSlide):
         is present; while this is probably uncommon, it can happen if the
         notes master does not have a body placeholder, or if the notes
         placeholder has been deleted from the notes slide.
+
+        :rtype: NotesSlidePlaceholder
+        ?
         """
         for placeholder in self.placeholders:
             if placeholder.placeholder_format.type == PP_PLACEHOLDER.BODY:
@@ -142,6 +196,8 @@ class NotesSlide(_BaseSlide):
         or |None| if there is no notes placeholder. This is a shortcut to
         accommodate the common case of simply adding "notes" text to the
         notes "page".
+
+        :rtype: pptx.text.text.TextFrame
         """
         notes_placeholder = self.notes_placeholder
         if notes_placeholder is None:
@@ -155,6 +211,7 @@ class NotesSlide(_BaseSlide):
         placeholder shapes in this notes slide.
         """
         return NotesSlidePlaceholders(self.element.spTree, self)
+    placeholders: NotesSlidePlaceholders
 
     @lazyproperty
     def shapes(self):
@@ -163,6 +220,7 @@ class NotesSlide(_BaseSlide):
         objects appearing on this notes slide.
         """
         return NotesSlideShapes(self._element.spTree, self)
+    shapes: NotesSlideShapes
 
 
 class Slide(_BaseSlide):
@@ -181,6 +239,8 @@ class Slide(_BaseSlide):
 
         The same |_Background| object is returned on every call for the same
         slide object.
+
+        :rtype: _Background
         """
         return super(Slide, self).background
 
@@ -205,6 +265,8 @@ class Slide(_BaseSlide):
         slide is created by :attr:`.notes_slide` when one doesn't exist; use
         this property to test for a notes slide without the possible side
         effect of creating one.
+
+        :rtype: bool
         """
         return self.part.has_notes_slide
 
@@ -214,6 +276,8 @@ class Slide(_BaseSlide):
         Return the |NotesSlide| instance for this slide. If the slide does
         not have a notes slide, one is created. The same single instance is
         returned on each call.
+
+        :rtype: NotesSlide
         """
         return self.part.notes_slide
 
@@ -224,6 +288,7 @@ class Slide(_BaseSlide):
         shapes in this slide.
         """
         return SlidePlaceholders(self._element.spTree, self)
+    placeholders: SlidePlaceholders
 
     @lazyproperty
     def shapes(self):
@@ -232,6 +297,7 @@ class Slide(_BaseSlide):
         appearing on this slide.
         """
         return SlideShapes(self._element.spTree, self)
+    shapes: SlideShapes
 
     @property
     def slide_id(self):
@@ -240,6 +306,8 @@ class Slide(_BaseSlide):
         presentation. The slide id does not change if the position of this
         slide in the slide sequence is changed by adding, rearranging, or
         deleting slides.
+
+        :rtype: int
         """
         return self.part.slide_id
 
@@ -247,6 +315,8 @@ class Slide(_BaseSlide):
     def slide_layout(self):
         """
         |SlideLayout| object this slide inherits appearance from.
+
+        :rtype: SlideLayout
         """
         return self.part.slide_layout
 
@@ -265,6 +335,8 @@ class Slides(ParentedElementProxy):
     def __getitem__(self, idx):
         """
         Provide indexed access, (e.g. 'slides[0]').
+
+        :rtype: Slide
         """
         try:
             sldId = self._sldIdLst[idx]
@@ -275,6 +347,8 @@ class Slides(ParentedElementProxy):
     def __iter__(self):
         """
         Support iteration (e.g. 'for slide in slides:').
+
+        :rtype: typing.Iterable[Slide]
         """
         for sldId in self._sldIdLst:
             yield self.part.related_slide(sldId.rId)
@@ -288,6 +362,8 @@ class Slides(ParentedElementProxy):
     def add_slide(self, slide_layout):
         """
         Return a newly added slide that inherits layout from *slide_layout*.
+
+        :rtype: Slide
         """
         rId, slide = self.part.add_slide(slide_layout)
         slide.shapes.clone_layout_placeholders(slide_layout)
@@ -298,6 +374,8 @@ class Slides(ParentedElementProxy):
         """
         Return the slide identified by integer *slide_id* in this
         presentation, or *default* if not found.
+
+        :rtype: Slide
         """
         slide = self.part.get_slide(slide_id)
         if slide is None:
@@ -308,6 +386,8 @@ class Slides(ParentedElementProxy):
         """
         Map *slide* to an integer representing its zero-based position in
         this slide collection. Raises |ValueError| on *slide* not present.
+
+        :rtype: int
         """
         for idx, this_slide in enumerate(self):
             if this_slide == slide:
@@ -328,6 +408,8 @@ class SlideLayout(_BaseSlide):
         Generate a reference to each layout placeholder on this slide layout
         that should be cloned to a slide when the layout is applied to that
         slide.
+
+        :rtype: typing.Iterable[LayoutPlaceholder]
         """
         latent_ph_types = (
             PP_PLACEHOLDER.DATE,
@@ -345,6 +427,7 @@ class SlideLayout(_BaseSlide):
         shapes in this slide layout, sorted in *idx* order.
         """
         return LayoutPlaceholders(self._element.spTree, self)
+    placeholders: LayoutPlaceholders
 
     @lazyproperty
     def shapes(self):
@@ -353,17 +436,23 @@ class SlideLayout(_BaseSlide):
         appearing on this slide layout.
         """
         return LayoutShapes(self._element.spTree, self)
+    shapes: LayoutShapes
 
     @property
     def slide_master(self):
         """
         Slide master from which this slide layout inherits properties.
+
+        :rtype: SlideMaster
         """
         return self.part.slide_master
 
     @property
     def used_by_slides(self):
-        """Tuple of slide objects based on this slide layout."""
+        """Tuple of slide objects based on this slide layout.
+
+        :rtype: typing.Tuple[Slide]
+        """
         # ---getting Slides collection requires going around the horn a bit---
         slides = self.part.package.presentation_part.presentation.slides
         return tuple(s for s in slides if s.slide_layout == self)
@@ -384,6 +473,8 @@ class SlideLayouts(ParentedElementProxy):
     def __getitem__(self, idx):
         """
         Provide indexed access, (e.g. ``slide_layouts[2]``).
+
+        :rtype: SlideLayout
         """
         try:
             sldLayoutId = self._sldLayoutIdLst[idx]
@@ -395,6 +486,8 @@ class SlideLayouts(ParentedElementProxy):
         """
         Generate a reference to each of the |SlideLayout| instances in the
         collection, in sequence.
+
+        :rtype: typing.Iterable[SlideLayout]
         """
         for sldLayoutId in self._sldLayoutIdLst:
             yield self.part.related_slide_layout(sldLayoutId.rId)
@@ -406,7 +499,10 @@ class SlideLayouts(ParentedElementProxy):
         return len(self._sldLayoutIdLst)
 
     def get_by_name(self, name, default=None):
-        """Return SlideLayout object having *name* or *default* if not found."""
+        """Return SlideLayout object having *name* or *default* if not found.
+
+        :rtype: SlideLayout
+        """
         for slide_layout in self:
             if slide_layout.name == name:
                 return slide_layout
@@ -416,6 +512,8 @@ class SlideLayouts(ParentedElementProxy):
         """Return zero-based index of *slide_layout* in this collection.
 
         Raises ValueError if *slide_layout* is not present in this collection.
+
+        :rtype: int
         """
         for idx, this_layout in enumerate(self):
             if slide_layout == this_layout:
@@ -459,6 +557,7 @@ class SlideMaster(_BaseMaster):
     def slide_layouts(self):
         """|SlideLayouts| object providing access to this slide-master's layouts."""
         return SlideLayouts(self._element.get_or_add_sldLayoutIdLst(), self)
+    slide_layouts: SlideLayouts
 
 
 class SlideMasters(ParentedElementProxy):
@@ -476,6 +575,8 @@ class SlideMasters(ParentedElementProxy):
     def __getitem__(self, idx):
         """
         Provide indexed access, (e.g. ``slide_masters[2]``).
+
+        :rtype: SlideMaster
         """
         try:
             sldMasterId = self._sldMasterIdLst[idx]
@@ -487,6 +588,8 @@ class SlideMasters(ParentedElementProxy):
         """
         Generate a reference to each of the |SlideMaster| instances in the
         collection, in sequence.
+
+        :rtype: typing.Iterable[SlideMaster]
         """
         for smi in self._sldMasterIdLst:
             yield self.part.related_slide_master(smi.rId)
@@ -497,46 +600,3 @@ class SlideMasters(ParentedElementProxy):
         """
         return len(self._sldMasterIdLst)
 
-
-class _Background(ElementProxy):
-    """Provides access to slide background properties.
-
-    Note that the presence of this object does not by itself imply an
-    explicitly-defined background; a slide with an inherited background still
-    has a |_Background| object.
-    """
-
-    __slots__ = ("_cSld", "_fill")
-
-    def __init__(self, cSld):
-        super(_Background, self).__init__(cSld)
-        self._cSld = cSld
-
-    @lazyproperty
-    def fill(self):
-        """|FillFormat| instance for this background.
-
-        This |FillFormat| object is used to interrogate or specify the fill
-        of the slide background.
-
-        Note that accessing this property is potentially destructive. A slide
-        background can also be specified by a background style reference and
-        accessing this property will remove that reference, if present, and
-        replace it with NoFill. This is frequently the case for a slide
-        master background.
-
-        This is also the case when there is no explicitly defined background
-        (background is inherited); merely accessing this property will cause
-        the background to be set to NoFill and the inheritance link will be
-        interrupted. This is frequently the case for a slide background.
-
-        Of course, if you are accessing this property in order to set the
-        fill, then these changes are of no consequence, but the existing
-        background cannot be reliably interrogated using this property unless
-        you have already established it is an explicit fill.
-
-        If the background is already a fill, then accessing this property
-        makes no changes to the current background.
-        """
-        bgPr = self._cSld.get_or_add_bgPr()
-        return FillFormat.from_fill_parent(bgPr)
