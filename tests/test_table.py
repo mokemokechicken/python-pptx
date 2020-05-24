@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import pytest
 
 from pptx.dml.fill import FillFormat
-from pptx.enum.text import MSO_ANCHOR
+from pptx.enum.text import MSO_VERTICAL_ANCHOR as MSO_ANCHOR
 from pptx.oxml.ns import qn
 from pptx.oxml.table import CT_Table, CT_TableCell, TcRange
 from pptx.shapes.graphfrm import GraphicFrame
@@ -660,6 +660,14 @@ class Describe_ColumnCollection(object):
         with pytest.raises(IndexError):
             columns[9]
 
+    def it_supports_appending_column(self, append_fixture):
+        columns, expected_count = append_fixture
+        assert len(columns) == expected_count
+
+    def it_supports_removing_column(self, remove_fixture):
+        columns, expected_count = remove_fixture
+        assert len(columns) == expected_count
+
     # fixtures -------------------------------------------------------
 
     @pytest.fixture(
@@ -703,6 +711,28 @@ class Describe_ColumnCollection(object):
         columns = _ColumnCollection(element(tbl_cxml), None)
         return columns, expected_len
 
+    @pytest.fixture(params=[
+        ('a:tbl/a:tblGrid/a:gridCol', 2),
+        ('a:tbl/a:tblGrid/(a:gridCol, a:gridCol)', 3),
+    ])
+    def append_fixture(self, request):
+        tbl_cxml, expected_len = request.param
+        columns = _ColumnCollection(element(tbl_cxml), None)
+        columns.add_column()
+
+        return columns, expected_len
+
+    @pytest.fixture(params=[
+        ('a:tbl/a:tblGrid/a:gridCol', 0),
+        ('a:tbl/a:tblGrid/(a:gridCol, a:gridCol)', 1),
+    ])
+    def remove_fixture(self, request):
+        tbl_cxml, expected_len = request.param
+        columns = _ColumnCollection(element(tbl_cxml), None)
+        columns.remove(columns[0])
+
+        return columns, expected_len
+
 
 class Describe_Row(object):
     def it_knows_its_height(self, height_get_fixture):
@@ -730,7 +760,10 @@ class Describe_Row(object):
         row = _Row(element("a:tr"), None)
         return row, _CellCollection_, cells_
 
-    @pytest.fixture(params=[("a:tr{h=914400}", Inches(1)), ("a:tr{h=10pt}", Pt(10))])
+    @pytest.fixture(params=[
+        ('a:tr{h=914400}', Inches(1)),
+        ('a:tr{h=10pt}',   Pt(10)),
+    ])
     def height_get_fixture(self, request):
         tr_cxml, expected_value = request.param
         row = _Row(element(tr_cxml), None)
@@ -791,6 +824,14 @@ class Describe_RowCollection(object):
         with pytest.raises(IndexError):
             rows[9]
 
+    def it_supports_appending_row(self, append_fixture):
+        rows, expected_count = append_fixture
+        assert len(rows) == expected_count
+
+    def it_supports_removing_row(self, remove_fixture):
+        rows, expected_count = remove_fixture
+        assert len(rows) == expected_count
+
     # fixtures -------------------------------------------------------
 
     @pytest.fixture(params=["a:tbl", "a:tbl/a:tr", "a:tbl/(a:tr, a:tr, a:tr)"])
@@ -813,4 +854,24 @@ class Describe_RowCollection(object):
     def len_fixture(self, request):
         tbl_cxml, expected_len = request.param
         rows = _RowCollection(element(tbl_cxml), None)
+        return rows, expected_len
+
+    @pytest.fixture(params=[
+        ('a:tbl/a:tr', 2), ('a:tbl/(a:tr, a:tr)', 3),
+    ])
+    def append_fixture(self, request):
+        tbl_cxml, expected_len = request.param
+        rows = _RowCollection(element(tbl_cxml), None)
+        rows.add_row()
+
+        return rows, expected_len
+
+    @pytest.fixture(params=[
+        ('a:tbl/a:tr', 0), ('a:tbl/(a:tr, a:tr)', 1),
+    ])
+    def remove_fixture(self, request):
+        tbl_cxml, expected_len = request.param
+        rows = _RowCollection(element(tbl_cxml), None)
+        rows.remove(rows[0])
+
         return rows, expected_len
