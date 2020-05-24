@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import copy
+from typing import Callable, Optional
 
 from pptx.compat import is_integer
 from pptx.dml.fill import FillFormat
@@ -376,7 +377,7 @@ class _ColumnCollection(Subshape):
         """
         self._parent.notify_width_changed()
 
-    def add_column(self):
+    def add_column(self, init_cell_func: Optional[Callable[[_Cell], None]] = None):
         """
         Duplicates last column to keep formatting and resets it's cells text_frames
         (e.g. ``column = table.columns.add_column()``).
@@ -391,7 +392,8 @@ class _ColumnCollection(Subshape):
             tr.append(new_tc)
 
             cell = _Cell(new_tc, tr.tc_lst)
-            cell.text = ''
+            if init_cell_func:
+                init_cell_func(cell)
 
         return _Column(new_col, self)
 
@@ -435,7 +437,7 @@ class _RowCollection(Subshape):
         """
         self._parent.notify_height_changed()
 
-    def add_row(self):
+    def add_row(self, init_cell_func: Optional[Callable[[_Cell], None]] = None):
         """
         Duplicates last row to keep formatting and resets it's cells text_frames
         (e.g. ``row = table.rows.add_row()``).
@@ -445,7 +447,8 @@ class _RowCollection(Subshape):
 
         for tc in new_row.tc_lst:
             cell = _Cell(tc, new_row.tc_lst)
-            cell.text = ''
+            if init_cell_func:
+                init_cell_func(cell)
 
         self._tbl.append(new_row)
 
@@ -617,4 +620,3 @@ class Table(object):
     @vert_banding.setter
     def vert_banding(self, value):
         self._tbl.bandCol = value
-
