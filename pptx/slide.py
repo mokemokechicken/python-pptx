@@ -370,6 +370,10 @@ class Slides(ParentedElementProxy):
         self._sldIdLst.add_sldId(rId)
         return slide
 
+    def remove_slide(self, slide_index: int):
+        e = self._sldIdLst
+        e.remove(e.sldId_lst[slide_index])
+
     def get(self, slide_id, default=None):
         """
         Return the slide identified by integer *slide_id* in this
